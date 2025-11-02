@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lens Weight Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+            background: #e9f7ef;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #c3e6cb;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<h1>Lens Weight Calculator</h1>
+<form id="lensForm">
+    <div class="field">
+        <label for="lensType">Lens Type</label>
+        <select id="lensType" name="lensType">
+            <option value="planoConvex">Plano‑Convex Lens</option>
+            <option value="planoConcave">Plano‑Concave Lens</option>
+            <option value="biConvex">Bi‑Convex Lens</option>
+            <option value="biConcave">Bi‑Concave Lens</option>
+            <option value="meniscus">Meniscus Lens</option>
+        </select>
+    </div>
+    <div class="field">
+        <label for="diameter">Lens Diameter (mm)</label>
+        <input type="number" id="diameter" name="diameter" value="50" step="any" required>
+    </div>
+    <div class="field">
+        <label for="thickness">Center Thickness (mm)</label>
+        <input type="number" id="thickness" name="thickness" value="10" step="any" required>
+    </div>
+    <div class="field surface1">
+        <label for="radius1">Curvature Radius 1 (mm)</label>
+        <input type="number" id="radius1" name="radius1" value="100" step="any">
+    </div>
+    <div class="field surface1">
+        <label for="aperture1">Aperture 1 (mm)</label>
+        <input type="number" id="aperture1" name="aperture1" value="50" step="any">
+    </div>
+    <div class="field surface2 hidden">
+        <label for="radius2">Curvature Radius 2 (mm)</label>
+        <input type="number" id="radius2" name="radius2" value="100" step="any">
+    </div>
+    <div class="field surface2 hidden">
+        <label for="aperture2">Aperture 2 (mm)</label>
+        <input type="number" id="aperture2" name="aperture2" value="50" step="any">
+    </div>
+    <div class="field">
+        <label for="material">Material</label>
+        <!-- Dropdown list of common optical materials spanning visible and infrared. Selecting
+             a material will automatically populate the density field below. -->
+        <select id="material" name="material">
+            <option value="custom" selected>Custom (enter density)</option>
+            <option value="fusedSilica">Fused Silica / Quartz (2.203 g/cm³)</option>
+            <option value="bk7">BK7 Glass (2.51 g/cm³)</option>
+            <option value="germanium">Germanium (5.327 g/cm³)</option>
+            <option value="silicon">Silicon (2.329 g/cm³)</option>
+            <option value="calciumFluoride">Calcium Fluoride, CaF₂ (3.18 g/cm³)</option>
+            <option value="zincSelenide">Zinc Selenide, ZnSe (5.27 g/cm³)</option>
+            <option value="zincSulfide">Zinc Sulfide, ZnS (4.09 g/cm³)</option>
+            <option value="sapphire">Sapphire, Al₂O₃ (3.98 g/cm³)</option>
+            <option value="magnesiumFluoride">Magnesium Fluoride, MgF₂ (3.148 g/cm³)</option>
+            <option value="lithiumFluoride">Lithium Fluoride, LiF (2.639 g/cm³)</option>
+            <!-- Additional structural and metal materials -->
+            <option value="clearceram">Clearceram (≈2.55 g/cm³)</option>
+            <option value="aluminium">Aluminium (2.699 g/cm³)</option>
+            <option value="invar">Invar (8.05 g/cm³)</option>
+            <option value="stainlessSteel">Stainless Steel (7.8 g/cm³)</option>
+            <option value="irg24">IRG 24 (4.47 g/cm³)</option>
+            <option value="irg26">IRG 26 (4.63 g/cm³)</option>
+        </select>
+    </div>
+    <div class="field">
+        <label for="density">Material Density (g/cm³)</label>
+        <!-- Density is auto‑filled when a material is selected, but the user can
+             override it if required -->
+        <input type="number" id="density" name="density" value="2.54" step="any" required>
+    </div>
+    <button type="button" onclick="calculate()">Calculate</button>
+    <div id="results" class="results hidden">
+        <p><strong>Sag 1 (mm):</strong> <span id="sag1Val"></span></p>
+        <p class="sag2-field"><strong>Sag 2 (mm):</strong> <span id="sag2Val"></span></p>
+        <p><strong>Edge Height (mm):</strong> <span id="heightVal"></span></p>
+        <p><strong>Volume (cm³):</strong> <span id="volumeVal"></span></p>
+        <p><strong>Weight (g):</strong> <span id="weightVal"></span></p>
+    </div>
+</form>
+
+<script>
+// Map of optical materials to their densities in g/cm³. Values are drawn from
+// reliable physical property tables: fused silica (quartz) ≈2.203 g/cm³【412902827437640†L380-L405】,
+// BK7 glass ≈2.51 g/cm³【911212433719750†L360-L375】,
+// Germanium ≈5.327 g/cm³【177736958625762†L370-L374】,
+// Silicon ≈2.329 g/cm³【360073311038384†L380-L382】,
+// Calcium fluoride ≈3.18 g/cm³【528609490765751†L226-L229】,
+// Zinc selenide ≈5.27 g/cm³【559613935041350†L240-L244】,
+// Zinc sulfide (IR grade) ≈4.09 g/cm³【715127990371257†L129-L133】,
+// Sapphire ≈3.98 g/cm³【217435113041680†L156-L161】,
+// Magnesium fluoride ≈3.148 g/cm³【981896695681768†L224-L227】.
+const materialDensities = {
+    fusedSilica: 2.203,
+    bk7: 2.51,
+    germanium: 5.327,
+    silicon: 2.329085,
+    calciumFluoride: 3.18,
+    zincSelenide: 5.27,
+    zincSulfide: 4.09,
+    sapphire: 3.98,
+    magnesiumFluoride: 3.148
+    ,
+    // Lithium fluoride has a density ≈2.639 g/cm³【754506847148249†L160-L164】.
+    lithiumFluoride: 2.639
+    ,
+    // Clearceram is a glass‑ceramic with density around 2.53–2.55 g/cm³【451669790408839†L206-L210】.
+    clearceram: 2.55
+    ,
+    // Aluminium has a density 2.699 g/cm³ at 20 °C【238513864874660†L417-L420】.
+    aluminium: 2.699
+    ,
+    // Invar 36 (FeNi36) density ≈8.05 g/cm³【639970546938891†L174-L176】.
+    invar: 8.05
+    ,
+    // Stainless steel density typically ranges 7.5–8 g/cm³; use median 7.8 g/cm³【242935300166929†L404-L407】.
+    stainlessSteel: 7.8
+    ,
+    // Schott IRG series chalcogenide glasses: IRG 24 and IRG 26. According to
+    // property tables for IRG glasses, IRG 24 has density 4.47 g/cm³ and
+    // IRG 26 has density 4.63 g/cm³【481475170088119†L124-L127】.
+    irg24: 4.47
+    ,
+    irg26: 4.63
+};
+
+// When a material is selected, populate the density field. If "custom" is
+// selected, leave the density unchanged for manual input.
+document.getElementById('material').addEventListener('change', function () {
+    const selected = this.value;
+    if (selected !== 'custom' && materialDensities[selected] !== undefined) {
+        document.getElementById('density').value = materialDensities[selected];
+    }
+});
+function requiresSecondSurface(type) {
+    return ['biConvex', 'biConcave', 'meniscus'].includes(type);
+}
+
+document.getElementById('lensType').addEventListener('change', function() {
+    const type = this.value;
+    const secondSurfaceFields = document.querySelectorAll('.surface2');
+    if (requiresSecondSurface(type)) {
+        secondSurfaceFields.forEach(el => el.classList.remove('hidden'));
+    } else {
+        secondSurfaceFields.forEach(el => el.classList.add('hidden'));
+    }
+    // Hide sag2 result if not needed
+    document.querySelector('.sag2-field').style.display = requiresSecondSurface(type) ? 'block' : 'none';
+});
+
+function sagitta(radius, aperture) {
+    // Handle zero or missing radius
+    if (!radius) return 0;
+    const half = aperture / 2;
+    const term = Math.max(radius * radius - half * half, 0);
+    return radius - Math.sqrt(term);
+}
+
+function sphericalCapVolume(sag, radius) {
+    const h = Math.abs(sag);
+    return Math.PI * h * h * (3 * radius - h) / 3;
+}
+
+function calculate() {
+    // Parse inputs
+    const type = document.getElementById('lensType').value;
+    const diameter = parseFloat(document.getElementById('diameter').value);
+    const thickness = parseFloat(document.getElementById('thickness').value);
+    const density = parseFloat(document.getElementById('density').value);
+    const R1 = parseFloat(document.getElementById('radius1').value);
+    // Aperture values: treat empty strings as NaN rather than 0. '||' would
+    // incorrectly replace valid 0 with diameter. Use isNaN checks instead.
+    const a1Val = parseFloat(document.getElementById('aperture1').value);
+    const A1 = isNaN(a1Val) ? diameter : a1Val;
+    const R2 = parseFloat(document.getElementById('radius2').value);
+    const a2Val = parseFloat(document.getElementById('aperture2').value);
+    const A2 = isNaN(a2Val) ? diameter : a2Val;
+    if (!diameter || !thickness || !density) {
+        alert('Please enter valid diameter, thickness, and density.');
+        return;
+    }
+    // Compute sags according to type
+    let sag1 = 0, sag2 = 0, hasS2 = false;
+    switch (type) {
+        case 'planoConvex':
+            sag1 = sagitta(R1, A1);
+            break;
+        case 'planoConcave':
+            sag1 = -sagitta(R1, A1);
+            break;
+        case 'biConvex':
+            sag1 = sagitta(R1, A1);
+            sag2 = sagitta(R2, A2);
+            hasS2 = true;
+            break;
+        case 'biConcave':
+            sag1 = -sagitta(R1, A1);
+            sag2 = -sagitta(R2, A2);
+            hasS2 = true;
+            break;
+        case 'meniscus':
+            sag1 = sagitta(R1, A1);
+            sag2 = -sagitta(R2, A2);
+            hasS2 = true;
+            break;
+    }
+    // Edge height at diameter
+    const tEdge = thickness - (sag1 + (hasS2 ? sag2 : 0));
+    if (tEdge < 0) {
+        alert('Invalid parameters: negative edge thickness.');
+        return;
+    }
+    const area = Math.PI * Math.pow(diameter / 2, 2);
+    const volCylinder = area * tEdge;
+    let totalVolume = volCylinder;
+    // Add or subtract cap volumes
+    totalVolume += sphericalCapVolume(sag1, Math.abs(R1)) * (sag1 >= 0 ? 1 : -1);
+    if (hasS2) {
+        totalVolume += sphericalCapVolume(sag2, Math.abs(R2)) * (sag2 >= 0 ? 1 : -1);
+    }
+    const volumeCm3 = totalVolume / 1000;
+    const weight = volumeCm3 * density;
+    // Display results
+    document.getElementById('sag1Val').textContent = sag1.toFixed(4);
+    if (hasS2) {
+        document.getElementById('sag2Val').textContent = sag2.toFixed(4);
+    }
+    document.getElementById('heightVal').textContent = tEdge.toFixed(4);
+    document.getElementById('volumeVal').textContent = volumeCm3.toFixed(5);
+    document.getElementById('weightVal').textContent = weight.toFixed(5);
+    document.getElementById('results').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
